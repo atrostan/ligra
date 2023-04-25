@@ -24,9 +24,13 @@ endif
 
 #compilers
 ifdef CILK
-PCC = g++
-PCFLAGS = -std=c++14 -fcilkplus -lcilkrts -O3 -DCILK $(INTT) $(INTE) $(CODE) $(PD) $(MEM)
-PLFLAGS = -fcilkplus -lcilkrts
+# PCC = g++
+PCC = /OpenCilk-2.0.0-x86_64-Linux-Ubuntu-22.04/bin/clang++
+PCFLAGS = -std=c++14  -fopencilk -O3 -DCILK $(INTT) $(INTE) $(CODE) $(PD) $(MEM)
+PLFLAGS = -fopencilk
+
+# PCFLAGS = -std=c++14 -fcilkplus -lcilkrts -O3 -DCILK $(INTT) $(INTE) $(CODE) $(PD) $(MEM)
+# PLFLAGS = -fcilkplus -lcilkrts
 
 else ifdef MKLROOT
 PCC = icpc

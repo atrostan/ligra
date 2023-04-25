@@ -24,11 +24,13 @@
 #include "ligra.h"
 #include "math.h"
 
+typedef float ScoreT; // only ligra uses doubles
+
 template <class vertex>
 struct PR_F {
-  double* p_curr, *p_next;
+  ScoreT* p_curr, *p_next;
   vertex* V;
-  PR_F(double* _p_curr, double* _p_next, vertex* _V) : 
+  PR_F(ScoreT* _p_curr, ScoreT* _p_next, vertex* _V) : 
     p_curr(_p_curr), p_next(_p_next), V(_V) {}
   inline bool update(uintE s, uintE d){ //update function applies PageRank equation
     p_next[d] += p_curr[s]/V[s].getOutDegree();
@@ -42,13 +44,13 @@ struct PR_F {
 
 //vertex map function to update its p value according to PageRank equation
 struct PR_Vertex_F {
-  double damping;
-  double addedConstant;
-  double* p_curr;
-  double* p_next;
-  PR_Vertex_F(double* _p_curr, double* _p_next, double _damping, intE n) :
+  ScoreT damping;
+  ScoreT addedConstant;
+  ScoreT* p_curr;
+  ScoreT* p_next;
+  PR_Vertex_F(ScoreT* _p_curr, ScoreT* _p_next, ScoreT _damping, intE n) :
     p_curr(_p_curr), p_next(_p_next), 
-    damping(_damping), addedConstant((1-_damping)*(1/(double)n)){}
+    damping(_damping), addedConstant((1-_damping)*(1/(ScoreT)n)){}
   inline bool operator () (uintE i) {
     p_next[i] = damping*p_next[i] + addedConstant;
     return 1;
@@ -57,8 +59,8 @@ struct PR_Vertex_F {
 
 //resets p
 struct PR_Vertex_Reset {
-  double* p_curr;
-  PR_Vertex_Reset(double* _p_curr) :
+  ScoreT* p_curr;
+  PR_Vertex_Reset(ScoreT* _p_curr) :
     p_curr(_p_curr) {}
   inline bool operator () (uintE i) {
     p_curr[i] = 0.0;
@@ -70,12 +72,12 @@ template <class vertex>
 void Compute(graph<vertex>& GA, commandLine P) {
   long maxIters = P.getOptionLongValue("-maxiters",100);
   const intE n = GA.n;
-  const double damping = 0.85, epsilon = 0.0000001;
+  const ScoreT damping = 0.85, epsilon = 0.0000001;
   
-  double one_over_n = 1/(double)n;
-  double* p_curr = newA(double,n);
+  ScoreT one_over_n = 1/(ScoreT)n;
+  ScoreT* p_curr = newA(ScoreT,n);
   {parallel_for(long i=0;i<n;i++) p_curr[i] = one_over_n;}
-  double* p_next = newA(double,n);
+  ScoreT* p_next = newA(ScoreT,n);
   {parallel_for(long i=0;i<n;i++) p_next[i] = 0;} //0 if unchanged
   bool* frontier = newA(bool,n);
   {parallel_for(long i=0;i<n;i++) frontier[i] = 1;}
@@ -90,11 +92,12 @@ void Compute(graph<vertex>& GA, commandLine P) {
     {parallel_for(long i=0;i<n;i++) {
       p_curr[i] = fabs(p_curr[i]-p_next[i]);
       }}
-    double L1_norm = sequence::plusReduce(p_curr,n);
+    ScoreT L1_norm = sequence::plusReduce(p_curr,n);
     if(L1_norm < epsilon) break;
     //reset p_curr
     vertexMap(Frontier,PR_Vertex_Reset(p_curr));
     swap(p_curr,p_next);
   }
   Frontier.del(); free(p_curr); free(p_next); 
+  std::cout << "number of iterations to converge: " << iter << "\n";
 }
